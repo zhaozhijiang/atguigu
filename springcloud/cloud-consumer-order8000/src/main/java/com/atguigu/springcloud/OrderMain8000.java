@@ -9,8 +9,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @description: TODO
  */
 @SpringBootApplication
-public class OrderMain80 {
+public class OrderMain8000 {
     public static void main(String[] args) {
-        SpringApplication.run(OrderMain80.class, args);
+        SpringApplication.run(OrderMain8000.class, args);
     }
 }
