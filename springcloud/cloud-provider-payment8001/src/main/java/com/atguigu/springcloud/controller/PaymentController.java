@@ -5,12 +5,14 @@ import com.atguigu.springcloud.entities.CommonResult;
 import com.atguigu.springcloud.entities.Payment;
 import com.atguigu.springcloud.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author zhijiang.zhao
@@ -28,6 +30,19 @@ public class PaymentController {
     @Resource
     private DiscoveryClient discoveryClient;
 
+    @Value("${server.port}")
+    private String serverPort;
+
+    @PostMapping("/create")
+    public CommonResult create(@RequestBody Payment payment) {
+        return paymentService.create(payment);
+    }
+
+    @GetMapping("/get/{id}")
+    public CommonResult getPaymentById(@PathVariable("id") Long id) {
+        return paymentService.getPaymentById(id);
+    }
+
     @GetMapping(value = "/discovery")
     public Object discovery() {
         List<String> services = discoveryClient.getServices();
@@ -42,13 +57,21 @@ public class PaymentController {
         return this.discoveryClient;
     }
 
-    @PostMapping("/create")
-    public CommonResult create(@RequestBody Payment payment) {
-        return paymentService.create(payment);
-    }
-
-    @GetMapping("/get/{id}")
-    public CommonResult getPaymentById(@PathVariable("id") Long id) {
-        return paymentService.getPaymentById(id);
+    /**
+     * OpenFeign超时控制
+     * 模拟超时
+     *
+     * @return
+     */
+    @GetMapping(value = "/feign/timeout")
+    public String paymentFeignTimeOut() {
+        System.out.println("*****paymentFeignTimeOut from port: " + serverPort);
+        //暂停几秒钟线程
+        try {
+            TimeUnit.SECONDS.sleep(3);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return serverPort;
     }
 }
