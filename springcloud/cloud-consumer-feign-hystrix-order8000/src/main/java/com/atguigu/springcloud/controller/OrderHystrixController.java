@@ -49,7 +49,7 @@ public class OrderHystrixController {
         return result;
     }
 
-    public String paymentTimeOutFallbackMethod(@PathVariable("id") Integer id) {
+    public String paymentTimeOutFallbackMethod() {
         return "我是消费者80,对方支付系统繁忙请10秒钟后再试或者自己运行出错请检查自己,o(╥﹏╥)o";
     }
 

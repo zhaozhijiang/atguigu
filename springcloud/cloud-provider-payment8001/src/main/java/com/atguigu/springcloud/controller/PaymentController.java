@@ -65,7 +65,7 @@ public class PaymentController {
      */
     @GetMapping(value = "/feign/timeout")
     public String paymentFeignTimeOut() {
-        System.out.println("*****paymentFeignTimeOut from port: " + serverPort);
+        log.info("paymentFeignTimeOut from port: {}", serverPort);
         //暂停几秒钟线程
         try {
             TimeUnit.SECONDS.sleep(3);

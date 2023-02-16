@@ -1,5 +1,6 @@
 package com.atguigu.springcloud.filter;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -16,14 +17,15 @@ import java.util.Date;
  * @Description:
  */
 @Component //必须加，必须加，必须加
+@Slf4j
 public class MyLogGateWayFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        System.out.println("time:" + new Date() + "\t 执行了自定义的全局过滤器: " + "MyLogGateWayFilter" + "hello");
+        log.info("time:" + new Date() + "\t 执行了自定义的全局过滤器: " + "MyLogGateWayFilter" + "hello");
 
         String uname = exchange.getRequest().getQueryParams().getFirst("uname");
         if (uname == null) {
-            System.out.println("****用户名为null，无法登录");
+            log.info("****用户名为null，无法登录");
             exchange.getResponse().setStatusCode(HttpStatus.NOT_ACCEPTABLE);
             return exchange.getResponse().setComplete();
         }

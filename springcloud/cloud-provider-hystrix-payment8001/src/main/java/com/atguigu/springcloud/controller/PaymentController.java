@@ -28,7 +28,7 @@ public class PaymentController {
     @GetMapping("/payment/hystrix/ok/{id}")
     public String paymentInfoOk(@PathVariable("id") Integer id) {
         String result = paymentService.paymentInfoOk(id);
-        log.info("****result: " + result);
+        log.info("result:{}", result);
         return result;
     }
 
