@@ -12,6 +12,8 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -23,6 +25,12 @@ import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.client.indices.GetIndexResponse;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -179,7 +187,6 @@ public class ElasticSearchTest {
         //创建批量新增请求对象
         BulkRequest request = new BulkRequest();
         request.add(new IndexRequest().index("user").id("1004").source(XContentType.JSON, "name", "xiaohuahua"));
-        request.add(new IndexRequest().index("user").id("1004").source(XContentType.JSON, "name", "xiaohuahua"));
         request.add(new IndexRequest().index("user").id("1005").source(XContentType.JSON, "name", "zhangsan"));
         request.add(new IndexRequest().index("user").id("1006").source(XContentType.JSON, "name", "lisi"));
         //创建响应对象
@@ -190,6 +197,7 @@ public class ElasticSearchTest {
 
     /**
      * 批量删除
+     *
      * @throws IOException
      */
     @Test
@@ -199,11 +207,195 @@ public class ElasticSearchTest {
         request.add(new DeleteRequest().index("user").id("1001"));
         request.add(new DeleteRequest().index("user").id("1002"));
         request.add(new DeleteRequest().index("user").id("1003"));
-        BulkResponse response = client.bulk(request,RequestOptions.DEFAULT);
+        BulkResponse response = client.bulk(request, RequestOptions.DEFAULT);
         System.out.println("took：" + response.getTook());
         Arrays.stream(response.getItems()).forEach(System.out::println);
         System.out.println("items：" + Arrays.toString(response.getItems()));
         System.out.println("status：" + response.status());
         System.out.println("失败消息：" + response.buildFailureMessage());
+    }
+
+    //高级查询
+
+    /**
+     * 查询所有索引数据
+     *
+     * @throws IOException
+     */
+    @Test
+    public void RequestBodyQuery() throws IOException {
+        RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(new HttpHost("192.168.56.101", 9200)));
+        //创建搜索对象
+        SearchRequest request = new SearchRequest();
+        request.indices("user");
+        //构建查询的请求体
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        //查询所有对象
+        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+        request.source(searchSourceBuilder);
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        //查询匹配
+        SearchHits hits = response.getHits();
+        System.out.println("took：" + response.getTook());
+        System.out.println("是否超时：" + response.isTimedOut());
+        System.out.println("TotalHits：" + hits.getTotalHits());
+        System.out.println("MaxScore：" + hits.getMaxScore());
+        for (SearchHit hit : hits) {
+            System.out.println(hit.getSourceAsString());
+        }
+    }
+
+    /**
+     * term查询
+     *
+     * @throws IOException
+     */
+    @Test
+    public void TremQuery() throws IOException {
+        RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(new HttpHost("192.168.56.101", 9200)));
+        //创建搜索对象
+        SearchRequest request = new SearchRequest();
+        request.indices("user");
+        //构建查询的请求体
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        //查询所有对象
+        searchSourceBuilder.query(QueryBuilders.termQuery("name", "zhangsan"));
+        request.source(searchSourceBuilder);
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        //查询匹配
+        SearchHits hits = response.getHits();
+        System.out.println("took：" + response.getTook());
+        System.out.println("是否超时：" + response.isTimedOut());
+        System.out.println("TotalHits：" + hits.getTotalHits());
+        System.out.println("MaxScore：" + hits.getMaxScore());
+        for (SearchHit hit : hits) {
+            System.out.println(hit.getSourceAsString());
+        }
+    }
+
+    /**
+     * 分页查询
+     *
+     * @throws Exception
+     */
+    @Test
+    public void PageQuery() throws Exception {
+        RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(new HttpHost("192.168.56.101", 9200)));
+        //创建搜索对象
+        SearchRequest request = new SearchRequest();
+        request.indices("user");
+        //构建查询请求体
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        //查询所有对象
+        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+        //分页查询 当前页其实索引 第一条数据的顺序号 from
+        searchSourceBuilder.from(0);
+        //每页显示多少条
+        searchSourceBuilder.size(2);
+        request.source(searchSourceBuilder);
+
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        //查询匹配
+        SearchHits hits = response.getHits();
+        System.out.println("took：" + response.getTook());
+        System.out.println("是否超时：" + response.isTimedOut());
+        System.out.println("TotalHits：" + hits.getTotalHits());
+        System.out.println("MaxScore：" + hits.getMaxScore());
+        for (SearchHit hit : hits) {
+            System.out.println(hit.getSourceAsString());
+        }
+    }
+
+    @Test
+    public void DataSorting() throws Exception {
+        RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(new HttpHost("192.168.56.101", 9200)));
+        //创建搜索对象
+        SearchRequest request = new SearchRequest();
+        request.indices("user");
+        //构建查询请求体
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        //查询所有对象
+        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+        //数据排序
+        searchSourceBuilder.sort("age", SortOrder.DESC);
+
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        //查询匹配
+        SearchHits hits = response.getHits();
+        System.out.println("took：" + response.getTook());
+        System.out.println("是否超时：" + response.isTimedOut());
+        System.out.println("TotalHits：" + hits.getTotalHits());
+        System.out.println("MaxScore：" + hits.getMaxScore());
+        for (SearchHit hit : hits) {
+            System.out.println(hit.getSourceAsString());
+        }
+    }
+
+    /**
+     * 过滤字段
+     *
+     * @throws Exception
+     */
+    @Test
+    public void FilterFiled() throws Exception {
+        RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(new HttpHost("192.168.56.101", 9200)));
+        //创建搜索对象
+        SearchRequest request = new SearchRequest();
+        request.indices("user");
+        //构建查询的请求体
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        //查询所有对象
+        sourceBuilder.query(QueryBuilders.matchAllQuery());
+        //数据排序
+        sourceBuilder.sort("age", SortOrder.DESC);
+        //查询过滤字段
+        String[] excludes = {};
+        //过滤掉name属性
+        String[] includes = {"age"};
+        sourceBuilder.fetchSource(includes, excludes);
+
+        request.source(sourceBuilder);
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        //查询匹配
+        SearchHits hits = response.getHits();
+        System.out.println("took：" + response.getTook());
+        System.out.println("是否超时：" + response.isTimedOut());
+        System.out.println("TotalHits：" + hits.getTotalHits());
+        System.out.println("MaxScore：" + hits.getMaxScore());
+        for (SearchHit hit : hits) {
+            System.out.println(hit.getSourceAsString());
+        }
+    }
+
+    @Test
+    public void BoolSearch() throws Exception {
+        //创建客户端连接
+        RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(new HttpHost("192.168.56.101", 9200)));
+        //创建查询对象
+        SearchRequest request = new SearchRequest();
+        request.indices("user");
+        //创建查询请求体
+        SearchSourceBuilder sourceBuilder =new SearchSourceBuilder();
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        //必须包含
+        boolQueryBuilder.must(QueryBuilders.matchQuery("age", 18));
+        //一定不包含
+        boolQueryBuilder.mustNot(QueryBuilders.matchQuery("name", "lisi"));
+        //可能包含
+        boolQueryBuilder.should(QueryBuilders.matchQuery("name", "zhangsan"));
+        //查询所有对象
+        sourceBuilder.query(boolQueryBuilder);
+
+        request.source(sourceBuilder);
+        SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+        //查询匹配
+        SearchHits hits = response.getHits();
+        System.out.println("took：" + response.getTook());
+        System.out.println("是否超时：" + response.isTimedOut());
+        System.out.println("TotalHits：" + hits.getTotalHits());
+        System.out.println("MaxScore：" + hits.getMaxScore());
+        for (SearchHit hit : hits) {
+            System.out.println(hit.getSourceAsString());
+        }
     }
 }
